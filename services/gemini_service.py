@@ -8,24 +8,21 @@ from config import Config
 from datetime import datetime
 
 # ── System prompt ────────────────────────────────────────────────
-SYSTEM_INSTRUCTION = """You are Feelora, an AI-powered student mental health companion.
+SYSTEM_INSTRUCTION = """You are Feelora, an AI-powered student mental health companion and high-intensity study planner.
 Your role:
 - Provide emotional support to students facing stress, anxiety, and academic pressure
-- Help students develop healthy study habits and a balanced lifestyle
+- Handle study scheduling strictly based on urgency and next-day priorities
+- If a user mentions an exam is "tomorrow", focus ONLY on a plan until tomorrow morning — no long-term planning
+- Always ask for current syllabus completion status if it's not provided before making a detailed plan
 - Offer practical relaxation and coping techniques
-- Be a non-judgmental, empathetic listener
 Behavior Rules:
 - Always be empathetic, warm, and supportive — never clinical or robotic
-- Never judge the user for their feelings or struggles
+- For urgent deadlines, be direct, encouraging, and highly focused on immediate tasks
 - Keep responses concise and readable (3-5 sentences unless more detail is genuinely needed)
-- Offer practical, actionable advice when appropriate
-- Do NOT provide medical diagnoses or clinical assessments
 - If a student expresses serious distress or crisis, gently encourage them to reach out to a trusted person or professional counselor
-- Use a friendly, human-like tone with occasional emojis to feel approachable
 Response Style:
 - Friendly, warm, and encouraging
 - Simple language — avoid jargon
-- Short to medium length responses
 - End with an open question or gentle encouragement when appropriate
 If extreme distress is detected (hopelessness, self-harm thoughts, crisis):
 - Respond with deep care and compassion
@@ -81,7 +78,7 @@ def chat_with_gemini(message: str, conversation_history: list, app_context: str 
         }
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=SYSTEM_INSTRUCTION)
+        model = genai.GenerativeModel(Config.GEMINI_MODEL, system_instruction=SYSTEM_INSTRUCTION)
         chat = model.start_chat(history=[])
         
         # Add conversation history
@@ -117,34 +114,42 @@ def generate_study_plan(subjects: str, deadlines: str, available_hours: str, bre
     
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"""You are Feelora, an expert academic coach. Create a highly personalized study schedule.
-        
+        model = genai.GenerativeModel(Config.GEMINI_MODEL)
+        prompt = f"""You are Feelora, a high-intensity AI study planner. Your role is to handle scheduling strictly based on urgency.
+
         CURRENT DATE & TIME: {current_time}
         Subjects/Topics: {subjects}
         Upcoming Deadlines: {deadlines}
-        Available study hours per day: {available_hours} hours
-        Preferred break style: {break_style}
-        Energy Level: {energy_level}
-        Learning Style: {learning_style}
-        Latest Mood: {latest_mood} (USE THIS: If Mood is Low, suggest lighter tasks.)
+        Available study hours: {available_hours}
+        Break style: {break_style}
+        Latest Mood: {latest_mood}
 
-        Return ONLY a valid JSON object with this structure:
+        CRITICAL URGENCY RULES:
+        1. IF EXAM/DEADLINE IS TOMORROW OR WITHIN 24 HOURS: 
+           - You MUST NOT create a week-long or multi-day schedule. 
+           - The 'days' array in your JSON response must contain EXACTLY ONE entry.
+           - This entry should be titled 'Urgent: Until Exam Morning' or 'Next 24 Hours'.
+           - Break down the syllabus into specific hourly sessions (e.g., 8pm-9pm, 9pm-10pm) to finish the remaining topics before the exam time.
+        2. IF NO URGENT DEADLINE: You may create a standard 3-7 day plan.
+        3. SYLLABUS COMPLETION: If the user hasn't specified what is ALREADY completed (e.g., "I've done 50%"), use the 'overview' to explicitly ask: "How much of the syllabus have you already completed? I've made this plan assuming you need to cover everything, but I can refine it if you tell me what's left."
+        4. NO FILLER: Focus on task completion, not 'long-term growth'.
+
+        Return ONLY a valid JSON object:
         {{
-          "overview": "Explanation of the plan structure",
+          "overview": "Direct response. If deadline is tomorrow, start with: 'Here is your urgent breakdown until tomorrow morning...'. Ask about syllabus status if missing.",
           "days": [
             {{
-              "day": "Today/Tomorrow/Monday",
-              "date": "Day 1",
+              "day": "Urgent Plan (Next 24 Hours)",
+              "date": "{current_time}",
               "sessions": [
                 {{
-                  "time": "9:00 AM - 10:30 AM",
-                  "subject": "Subject Name",
-                  "task": "Actionable task",
+                  "time": "Specific Time (e.g., 10:00 PM - 11:30 PM)",
+                  "subject": "Subject",
+                  "task": "Specific chapter or topic to FINISH",
                   "type": "study"
                 }}
               ],
-              "tip": "Daily wellness tip"
+              "tip": "High-intensity focus tip"
             }}
           ]
         }}"""
@@ -174,7 +179,7 @@ def generate_weekly_insight(logs, checkins_this_week):
 
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel(Config.GEMINI_MODEL)
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception:
@@ -190,7 +195,7 @@ def generate_mood_reflection(score: int, description: str, triggers: str) -> str
 
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel(Config.GEMINI_MODEL)
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception:
@@ -204,7 +209,7 @@ def generate_mood_question(score: int) -> str:
 
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel(Config.GEMINI_MODEL)
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception:
@@ -228,9 +233,34 @@ def generate_weekly_report(logs: list) -> str:
 # ── Fallback plan (no API key) ────────────────────────────────────
 def _fallback_plan(subjects: str, available_hours: str) -> dict:
     subjects_list = [s.strip() for s in subjects.split(',') if s.strip()] or ['General Study']
-    days_info = [('Monday', 'Focus!'), ('Tuesday', 'Hydrate!'), ('Wednesday', 'Win!'), ('Thursday', 'Review!'), ('Friday', 'Rest!'), ('Saturday', 'Recharge!'), ('Sunday', 'Plan!')]
-    plan = {"overview": "Here is a balanced plan to get you started! 🚀", "days": []}
-    for i, (day, tip) in enumerate(days_info):
-        sessions = [{"time": "9:00 AM", "subject": subjects_list[0], "task": "Study hard", "type": "study"}]
-        plan["days"].append({"day": day, "date": f"Day {i+1}", "sessions": sessions, "tip": tip})
+    
+    # Check if the user mentioned "tomorrow" in subjects (poor man's NLP for fallback)
+    is_urgent = 'tomorrow' in subjects.lower()
+    
+    plan = {
+        "overview": "I'm currently in high-urgency mode. Here is a focused plan to help you finish your remaining syllabus.",
+        "days": []
+    }
+    
+    if is_urgent:
+        # Urgent case: 1 day, multiple sessions
+        sessions = [
+            {"time": "Now - 2 Hours", "subject": subjects_list[0], "task": "Intensive Review of Core Topics", "type": "study"},
+            {"time": "Next 2 Hours", "subject": subjects_list[0], "task": "Practice Past Papers/Key Questions", "type": "study"},
+            {"time": "Before Sleep", "subject": subjects_list[0], "task": "Final Syllabus Check", "type": "study"}
+        ]
+        plan["days"].append({
+            "day": "Urgent Plan (Next 24 Hours)",
+            "date": "Today/Tomorrow",
+            "sessions": sessions,
+            "tip": "Focus on high-yield topics only. You've got this!"
+        })
+        plan["overview"] = "Here is your urgent breakdown for the next 24 hours. Please tell me how much of the syllabus is already completed for a better plan!"
+    else:
+        # Standard case: 7 days
+        days_info = [('Monday', 'Focus!'), ('Tuesday', 'Hydrate!'), ('Wednesday', 'Win!'), ('Thursday', 'Review!'), ('Friday', 'Rest!'), ('Saturday', 'Recharge!'), ('Sunday', 'Plan!')]
+        for i, (day, tip) in enumerate(days_info):
+            sessions = [{"time": "9:00 AM", "subject": subjects_list[0], "task": "Study session", "type": "study"}]
+            plan["days"].append({"day": day, "date": f"Day {i+1}", "sessions": sessions, "tip": tip})
+
     return plan

@@ -146,7 +146,13 @@
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
-          <input id="reg-password" class="form-input" type="password" placeholder="At least 6 characters" autocomplete="new-password" required />
+          <input id="reg-password" class="form-input" type="password" placeholder="Min. 8 chars, 1 number, 1 symbol" autocomplete="new-password" required oninput="checkPasswordStrength(this.value)" />
+          <div id="password-strength-container" style="margin-top: 8px; display: none;">
+            <div style="height: 4px; width: 100%; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+              <div id="strength-bar" style="height: 100%; width: 0%; transition: all 0.3s ease;"></div>
+            </div>
+            <div id="strength-text" style="font-size: 11px; margin-top: 4px; font-weight: 500;"></div>
+          </div>
         </div>
         <button type="submit" class="btn-primary" id="register-btn">Create Account</button>
       </form>
@@ -208,6 +214,45 @@
         btn.disabled = false;
         btn.textContent = 'Sign In';
       }
+    }
+
+    function checkPasswordStrength(password) {
+      const container = document.getElementById('password-strength-container');
+      const bar = document.getElementById('strength-bar');
+      const text = document.getElementById('strength-text');
+      
+      if (!password) {
+        container.style.display = 'none';
+        return;
+      }
+      
+      container.style.display = 'block';
+      let strength = 0;
+      let status = 'Weak';
+      let color = '#EF4444'; // Red
+
+      if (password.length >= 8) strength += 1;
+      if (/[0-9]/.test(password)) strength += 1;
+      if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+      if (strength === 1) {
+        bar.style.width = '33%';
+        status = 'Weak (Need 8+ chars, numbers & symbols)';
+      } else if (strength === 2) {
+        bar.style.width = '66%';
+        status = 'Medium (Almost there...)';
+        color = '#F59E0B'; // Orange
+      } else if (strength === 3) {
+        bar.style.width = '100%';
+        status = 'Strong';
+        color = '#10B981'; // Green
+      } else {
+        bar.style.width = '10%';
+      }
+
+      bar.style.background = color;
+      text.style.color = color;
+      text.textContent = status;
     }
 
     async function handleRegister(e) {
