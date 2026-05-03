@@ -24,15 +24,18 @@ def create_app():
     app.register_blueprint(schedule_bp, url_prefix='/api/schedule')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 
-    @app.route('/')
-    def index():
-        return render_template('index.html')
-
-    @app.route('/app')
-    def app_page():
-        return render_template('app.html')
-
     return app
+
+app = create_app()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/app')
+def app_page():
+    return render_template('app.html')
+
 
 app = create_app()
 
