@@ -71,7 +71,7 @@ def chat_with_gemini(message: str, conversation_history: list, app_context: str 
             'response': (
                 "I'm having trouble connecting right now. "
                 "Please add your GEMINI_API_KEY to the .env file. "
-                "Get a free key at aistudio.google.com 💙"
+                "Get a free key at https://aistudio.google.com 💙"
             ),
             'emotion': 'neutral',
             'emergency': False
@@ -79,11 +79,16 @@ def chat_with_gemini(message: str, conversation_history: list, app_context: str 
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
         model = genai.GenerativeModel(Config.GEMINI_MODEL, system_instruction=SYSTEM_INSTRUCTION)
-        # Build history as simple dictionaries
+        
+        # Build history in the correct format for v0.13+
         history = []
         for msg in conversation_history[-10:]:
             role = 'user' if msg['role'] == 'user' else 'model'
-            history.append({'role': role, 'parts': [msg['content']]})
+            # New API expects dict format with 'role' and 'parts'
+            history.append({
+                'role': role,
+                'parts': [{'text': msg['content']}] if isinstance(msg['content'], str) else [msg['content']]
+            })
             
         chat = model.start_chat(history=history)
         
@@ -99,17 +104,35 @@ def chat_with_gemini(message: str, conversation_history: list, app_context: str 
             'emergency': check_emergency(message)
         }
     except Exception as e:
-        return {
-            'response': f"⚠️ API Error: {str(e)}\n\nPlease check your terminal logs or API key.",
-            'emotion': 'neutral',
-            'emergency': False,
-            'error': str(e)
-        }
+        error_msg = str(e)
+        # Provide helpful error messages for common issues
+        if 'API key' in error_msg or 'not found' in error_msg.lower() or 'invalid' in error_msg.lower():
+            return {
+                'response': (
+                    "⚠️ API Key Error: Your API key is invalid or expired.\n\n"
+                    "✅ Fix: Go to https://aistudio.google.com, create a new API key, and add it to your .env file as:\n"
+                    "GEMINI_API_KEY=your_new_key_here\n\n"
+                    "Then restart the app."
+                ),
+                'emotion': 'neutral',
+                'emergency': False,
+                'error': error_msg
+            }
+        else:
+            return {
+                'response': f"⚠️ API Error: {error_msg}\n\nPlease check your terminal logs.",
+                'emotion': 'neutral',
+                'emergency': False,
+                'error': error_msg
+            }
 
 # ── Study plan generation ─────────────────────────────────────────
 def generate_study_plan(subjects: str, deadlines: str, available_hours: str, break_style: str, energy_level: str = "Medium", learning_style: str = "Visual", latest_mood: str = "Neutral") -> dict:
     if not Config.GEMINI_API_KEY:
-        return _fallback_plan(subjects, available_hours)
+        return {
+            "overview": "⚠️ API Key Not Found!\n\nTo generate AI-powered study plans, you need to:\n1. Get a free API key at https://aistudio.google.com\n2. Add it to your .env file as: GEMINI_API_KEY=your_key_here\n3. Restart the app",
+            "days": []
+        }
     
     current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
     
@@ -161,7 +184,14 @@ def generate_study_plan(subjects: str, deadlines: str, available_hours: str, bre
             lines = text.split('\n')
             text = '\n'.join(lines[1:-1]) if lines[-1].strip() == '```' else '\n'.join(lines[1:])
         return json.loads(text.strip())
-    except Exception:
+    except Exception as e:
+        error_msg = str(e)
+        if 'API key' in error_msg or 'not found' in error_msg.lower() or 'invalid' in error_msg.lower():
+            return {
+                "overview": "⚠️ API Key Error!\n\nYour API key is invalid or expired. Please:\n1. Get a new key at https://aistudio.google.com\n2. Update your .env file\n3. Restart the app",
+                "days": []
+            }
+        # Fall back to simple plan on other errors
         return _fallback_plan(subjects, available_hours)
 
 # ── Weekly insight ────────────────────────────────────────────────
