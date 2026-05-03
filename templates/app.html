@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sage — Dashboard</title>
+  <meta name="description" content="Your AI mental health companion dashboard" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🌿</div>
+      <div class="sidebar-logo-text">Sage</div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" id="nav-chat" onclick="navigate('chat')">
+        <span class="nav-icon">💬</span><span class="nav-label">Chat with Sage</span>
+      </button>
+      <button class="nav-link" id="nav-mood" onclick="navigate('mood')">
+        <span class="nav-icon">😊</span><span class="nav-label">Mood Tracker</span>
+      </button>
+      <button class="nav-link" id="nav-planner" onclick="navigate('planner')">
+        <span class="nav-icon">📅</span><span class="nav-label">Study Planner</span>
+      </button>
+      <button class="nav-link" id="nav-relax" onclick="navigate('relax')">
+        <span class="nav-icon">🧘</span><span class="nav-label">Relaxation</span>
+      </button>
+      <button class="nav-link" id="nav-dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name">Loading…</div>
+          <div class="user-status">● Online</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="handleLogout()" title="Sign out">⏻</button>
+    </div>
+  </nav>
+
+  <!-- Mobile top bar -->
+  <header class="mobile-header">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="mobile-logo">🌿 Sage</div>
+  </header>
+
+  <!-- Main content area -->
+  <main class="main-content" id="main-content">
+
+    <!-- ── Chat Panel ────────────────────────────────────────── -->
+    <section id="panel-chat" class="panel active">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Chat with Sage</h1>
+          <p class="panel-sub">Your AI mental health companion — always here, never judging.</p>
+        </div>
+        <button class="btn-icon" onclick="clearChat()" title="Clear conversation">🗑</button>
+      </div>
+      <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-welcome">
+            <div class="welcome-avatar">🌿</div>
+            <div class="welcome-text">
+              <strong>Hey, I'm Sage!</strong> 👋<br/>
+              I'm here to listen, support you through stress, and help you feel better.
+              How are you feeling today?
+            </div>
+          </div>
+        </div>
+        <div class="typing-indicator" id="typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="chat-input-row">
+          <textarea id="chat-input" class="chat-input" placeholder="Share what's on your mind…" rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="btn-send" id="btn-send" onclick="sendMessage()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Mood Tracker Panel ─────────────────────────────────── -->
+    <section id="panel-mood" class="panel">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Mood Tracker</h1>
+          <p class="panel-sub">Log how you feel each day and discover your emotional patterns.</p>
+        </div>
+      </div>
+      <div class="mood-grid">
+        <div class="card mood-log-card">
+          <h2 class="card-title">How are you feeling right now?</h2>
+          <div class="emoji-scale" id="emoji-scale">
+            <button class="emoji-btn" data-score="1" onclick="selectMood(1)" title="Very Bad">😞<span>Very Bad</span></button>
+            <button class="emoji-btn" data-score="2" onclick="selectMood(2)" title="Bad">😕<span>Bad</span></button>
+            <button class="emoji-btn" data-score="3" onclick="selectMood(3)" title="Okay">😐<span>Okay</span></button>
+            <button class="emoji-btn" data-score="4" onclick="selectMood(4)" title="Good">😊<span>Good</span></button>
+            <button class="emoji-btn" data-score="5" onclick="selectMood(5)" title="Excellent">😄<span>Excellent</span></button>
+          </div>
+          <textarea id="mood-description" class="form-textarea" placeholder="Optionally describe how you're feeling… (what happened today?)" rows="3"></textarea>
+          <button class="btn-primary" onclick="logMood()">Log My Mood</button>
+          <div id="mood-log-msg" class="success-msg"></div>
+        </div>
+        <div class="card mood-stats-card">
+          <h2 class="card-title">Your Mood This Week</h2>
+          <div class="stat-row" id="mood-stat-row">
+            <div class="stat-box"><div class="stat-val" id="mood-avg">–</div><div class="stat-lbl">Avg Score</div></div>
+            <div class="stat-box"><div class="stat-val" id="mood-trend-icon">–</div><div class="stat-lbl">Trend</div></div>
+            <div class="stat-box"><div class="stat-val" id="mood-entries">–</div><div class="stat-lbl">Entries</div></div>
+          </div>
+          <div class="mood-insights" id="mood-insights"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Study Planner Panel ────────────────────────────────── -->
+    <section id="panel-planner" class="panel">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Smart Study Planner</h1>
+          <p class="panel-sub">Generate a personalized, balanced weekly study schedule powered by AI.</p>
+        </div>
+      </div>
+      <div class="planner-grid">
+        <div class="card planner-form-card">
+          <h2 class="card-title">📋 Plan Your Week</h2>
+          <div class="form-group">
+            <label class="form-label">Subjects / Topics *</label>
+            <input id="planner-subjects" class="form-input" type="text" placeholder="e.g. Math, Physics, History" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Upcoming Deadlines</label>
+            <input id="planner-deadlines" class="form-input" type="text" placeholder="e.g. Math exam on Friday, History essay Monday" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Available Study Hours / Day</label>
+            <select id="planner-hours" class="form-input">
+              <option value="2">2 hours</option>
+              <option value="3">3 hours</option>
+              <option value="4" selected>4 hours</option>
+              <option value="5">5 hours</option>
+              <option value="6">6 hours</option>
+              <option value="8">8 hours</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Break Style</label>
+            <select id="planner-breaks" class="form-input">
+              <option value="Pomodoro (25 min study, 5 min break)">Pomodoro (25/5)</option>
+              <option value="Long sessions (90 min study, 20 min break)">Long Sessions (90/20)</option>
+              <option value="Flexible short breaks every hour">Flexible Breaks</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="planner-btn" onclick="generatePlan()">✨ Generate My Plan</button>
+        </div>
+        <div class="card planner-result-card" id="planner-result-card">
+          <div id="planner-placeholder" class="planner-placeholder">
+            <div style="font-size:48px;margin-bottom:12px;">📅</div>
+            <p>Fill in the form and click <strong>Generate My Plan</strong> to get your personalized study schedule!</p>
+          </div>
+          <div id="planner-output" style="display:none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Relaxation Panel ───────────────────────────────────── -->
+    <section id="panel-relax" class="panel">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Relaxation & Mindfulness</h1>
+          <p class="panel-sub">Quick exercises to calm your mind and reduce stress in minutes.</p>
+        </div>
+      </div>
+      <div class="relax-grid" id="relax-grid">
+        <div class="card relax-card" onclick="startExercise('breathing')">
+          <div class="relax-icon">🫧</div>
+          <h3>Box Breathing</h3>
+          <p>4-4-4-4 technique to instantly calm anxiety and reduce stress.</p>
+          <span class="relax-duration">4 minutes</span>
+        </div>
+        <div class="card relax-card" onclick="startExercise('grounding')">
+          <div class="relax-icon">🌍</div>
+          <h3>5-4-3-2-1 Grounding</h3>
+          <p>Bring yourself to the present moment using your five senses.</p>
+          <span class="relax-duration">5 minutes</span>
+        </div>
+        <div class="card relax-card" onclick="startExercise('pmr')">
+          <div class="relax-icon">💪</div>
+          <h3>Muscle Relaxation</h3>
+          <p>Progressive muscle relaxation to release physical tension.</p>
+          <span class="relax-duration">8 minutes</span>
+        </div>
+        <div class="card relax-card" onclick="startExercise('meditation')">
+          <div class="relax-icon">🧘</div>
+          <h3>Quick Meditation</h3>
+          <p>A short guided mindfulness session to clear your head.</p>
+          <span class="relax-duration">5 minutes</span>
+        </div>
+      </div>
+      <!-- Exercise modal -->
+      <div id="exercise-modal" class="exercise-modal hidden">
+        <div class="exercise-modal-inner">
+          <button class="exercise-close" onclick="closeExercise()">✕</button>
+          <div id="exercise-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Dashboard Panel ────────────────────────────────────── -->
+    <section id="panel-dashboard" class="panel">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Progress Dashboard</h1>
+          <p class="panel-sub">Track your emotional wellbeing and study consistency over time.</p>
+        </div>
+        <button class="btn-icon" onclick="loadDashboard()" title="Refresh">↻</button>
+      </div>
+      <div id="dashboard-content">
+        <div class="dashboard-stats-row" id="dash-stats-row">
+          <div class="stat-card"><div class="stat-icon">😊</div><div class="stat-val" id="dash-avg">–</div><div class="stat-lbl">Avg Mood (30d)</div></div>
+          <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-val" id="dash-streak">–</div><div class="stat-lbl">Day Streak</div></div>
+          <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-val" id="dash-total">–</div><div class="stat-lbl">Total Check-ins</div></div>
+          <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-val" id="dash-trend">–</div><div class="stat-lbl">Mood Trend</div></div>
+        </div>
+
+        <div class="dashboard-charts-row">
+          <div class="card chart-card">
+            <h2 class="card-title">Mood Over Time (30 Days)</h2>
+            <div class="chart-wrap"><canvas id="mood-chart"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h2 class="card-title">Emotion Distribution</h2>
+            <div class="chart-wrap"><canvas id="emotion-chart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card insight-card" id="insight-card">
+          <div class="insight-header">✨ AI Weekly Insight</div>
+          <div id="weekly-insight" class="insight-text">Loading your personalized insight…</div>
+        </div>
+
+        <div class="card insights-list-card" id="insights-list-card">
+          <h2 class="card-title">💡 Recommendations</h2>
+          <div id="dash-insights"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Emergency Overlay ──────────────────────────────────── -->
+  <div id="emergency-overlay" class="emergency-overlay hidden">
+    <div class="emergency-inner">
+      <div class="emergency-icon">💙</div>
+      <h2>You're Not Alone</h2>
+      <p>It sounds like you're going through something really difficult right now. Your feelings are valid, and reaching out is a sign of strength.</p>
+      <div class="emergency-resources">
+        <div class="resource-item"><strong>🇵🇰 Umang Helpline:</strong> 0311-7786264</div>
+        <div class="resource-item"><strong>🌍 Crisis Text Line:</strong> Text HOME to 741741</div>
+        <div class="resource-item"><strong>☎️ iCall (South Asia):</strong> 9152987821</div>
+      </div>
+      <p style="font-size:14px;opacity:0.8;">Please reach out to a trusted friend, family member, or counselor. You deserve support. 💙</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn-emergency-close" onclick="closeEmergency()">I'm okay, continue</button>
+        <button class="btn-emergency-chat" onclick="closeEmergency();navigate('chat')">Continue talking with Sage</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/mood.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/planner.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/relaxation.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/emergency.js') }}"></script>
+</body>
+</html>
