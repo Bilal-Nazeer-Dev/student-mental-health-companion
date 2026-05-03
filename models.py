@@ -29,6 +29,7 @@ def init_db():
             score INTEGER NOT NULL CHECK(score BETWEEN 1 AND 5),
             description TEXT,
             emotion_tag TEXT,
+            triggers TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
