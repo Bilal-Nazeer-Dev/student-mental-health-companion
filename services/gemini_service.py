@@ -80,14 +80,17 @@ def chat_with_gemini(message: str, conversation_history: list, app_context: str 
         genai.configure(api_key=Config.GEMINI_API_KEY)
         model = genai.GenerativeModel(Config.GEMINI_MODEL, system_instruction=SYSTEM_INSTRUCTION)
         
-        # Build history in the correct format for v0.13+
+        # Build history in the correct format for google-generativeai 0.8.x
         history = []
         for msg in conversation_history[-10:]:
+            # Skip messages that contain error emojis or common error text to avoid confusing the AI
+            if '⚠️' in msg['content'] or 'API Key Error' in msg['content'] or 'Google API Error' in msg['content']:
+                continue
+                
             role = 'user' if msg['role'] == 'user' else 'model'
-            # New API expects dict format with 'role' and 'parts'
             history.append({
                 'role': role,
-                'parts': [{'text': msg['content']}] if isinstance(msg['content'], str) else [msg['content']]
+                'parts': [{'text': msg['content']}]
             })
             
         chat = model.start_chat(history=history)
@@ -105,26 +108,33 @@ def chat_with_gemini(message: str, conversation_history: list, app_context: str 
         }
     except Exception as e:
         error_msg = str(e)
-        # Provide helpful error messages for common issues
-        if 'API key' in error_msg or 'not found' in error_msg.lower() or 'invalid' in error_msg.lower():
-            return {
-                'response': (
-                    "⚠️ API Key Error: Your API key is invalid or expired.\n\n"
-                    "✅ Fix: Go to https://aistudio.google.com, create a new API key, and add it to your .env file as:\n"
-                    "GEMINI_API_KEY=your_new_key_here\n\n"
-                    "Then restart the app."
-                ),
-                'emotion': 'neutral',
-                'emergency': False,
-                'error': error_msg
-            }
-        else:
-            return {
-                'response': f"⚠️ API Error: {error_msg}\n\nPlease check your terminal logs.",
-                'emotion': 'neutral',
-                'emergency': False,
-                'error': error_msg
-            }
+        print(f"Gemini API Error: {error_msg}")
+        
+        # Check for specific "Invalid Key" or "Quota" errors to provide clear fixes
+        clean_error = "I'm having a bit of trouble processing that. Could you try again in a moment?"
+        
+        if 'API_KEY_INVALID' in error_msg or 'API key not valid' in error_msg:
+            clean_error = (
+                "⚠️ API Key Error: Your API key is invalid.\n\n"
+                "✅ Fix: Please double-check the GEMINI_API_KEY in your .env file."
+            )
+        elif '429' in error_msg or 'quota' in error_msg.lower():
+            clean_error = (
+                "⚠️ Quota Exceeded: The AI is a bit busy right now.\n\n"
+                "✅ Fix: Please wait a minute or try switching to a different Gemini model in your config."
+            )
+        elif 'not found' in error_msg.lower():
+            clean_error = (
+                f"⚠️ Model Error: The model '{Config.GEMINI_MODEL}' was not found.\n\n"
+                "✅ Fix: Please check GEMINI_MODEL in your config.py."
+            )
+
+        return {
+            'response': clean_error,
+            'emotion': 'neutral',
+            'emergency': False,
+            'error': error_msg
+        }
 
 # ── Study plan generation ─────────────────────────────────────────
 def generate_study_plan(subjects: str, deadlines: str, available_hours: str, break_style: str, energy_level: str = "Medium", learning_style: str = "Visual", latest_mood: str = "Neutral") -> dict:
@@ -186,13 +196,11 @@ def generate_study_plan(subjects: str, deadlines: str, available_hours: str, bre
         return json.loads(text.strip())
     except Exception as e:
         error_msg = str(e)
-        if 'API key' in error_msg or 'not found' in error_msg.lower() or 'invalid' in error_msg.lower():
-            return {
-                "overview": "⚠️ API Key Error!\n\nYour API key is invalid or expired. Please:\n1. Get a new key at https://aistudio.google.com\n2. Update your .env file\n3. Restart the app",
-                "days": []
-            }
-        # Fall back to simple plan on other errors
-        return _fallback_plan(subjects, available_hours)
+        print(f"Study Plan Error: {error_msg}")
+        return {
+            "overview": f"⚠️ Google API Error: {error_msg}\n\nPlease check your key and region restrictions.",
+            "days": []
+        }
 
 # ── Weekly insight ────────────────────────────────────────────────
 def generate_weekly_insight(logs, checkins_this_week):
@@ -255,7 +263,7 @@ def generate_weekly_report(logs: list) -> str:
     
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel(Config.GEMINI_MODEL)
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception:
