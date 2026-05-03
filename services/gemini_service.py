@@ -3,7 +3,7 @@ Gemini AI Service — uses the google-generativeai SDK.
 """
 import json
 import google.generativeai as genai
-from google.generativeai import types
+
 from config import Config
 from datetime import datetime
 
@@ -79,12 +79,13 @@ def chat_with_gemini(message: str, conversation_history: list, app_context: str 
     try:
         genai.configure(api_key=Config.GEMINI_API_KEY)
         model = genai.GenerativeModel(Config.GEMINI_MODEL, system_instruction=SYSTEM_INSTRUCTION)
-        chat = model.start_chat(history=[])
-        
-        # Add conversation history
+        # Build history as simple dictionaries
+        history = []
         for msg in conversation_history[-10:]:
             role = 'user' if msg['role'] == 'user' else 'model'
-            chat.history.append(types.Content(role=role, parts=[types.Part(text=msg['content'])]))
+            history.append({'role': role, 'parts': [msg['content']]})
+            
+        chat = model.start_chat(history=history)
         
         if app_context:
             enhanced_message = f"[SYSTEM CONTEXT: The user's current live app state is: '{app_context}'].\n\n{message}"
