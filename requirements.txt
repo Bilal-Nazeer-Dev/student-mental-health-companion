@@ -1,6 +1,16 @@
-flask==3.0.3
-flask-cors==4.0.0
-google-genai>=0.8.0
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+Flask-JWT-Extended==4.6.0
+Flask-Cors==4.0.1
 python-dotenv==1.0.1
+<<<<<<< HEAD
 bcrypt==4.1.2
 gunicorn==22.0.0
+=======
+google-generativeai==0.8.3
+PyMySQL==1.1.1
+passlib==1.7.4
+email-validator==2.2.0
+bcrypt==4.1.2
+>>>>>>> 852b4a1e82c1bad35b79ecaddd2b23ce7037eb60
