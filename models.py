@@ -110,12 +110,12 @@ def verify_password(password, password_hash):
 
 # ── Mood helpers ─────────────────────────────────────────────────────────────
 
-def log_mood(user_id, score, description='', emotion_tag=''):
+def log_mood(user_id, score, description='', emotion_tag='', triggers=''):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        'INSERT INTO mood_logs (user_id, score, description, emotion_tag) VALUES (?, ?, ?, ?)',
-        (user_id, score, description, emotion_tag)
+        'INSERT INTO mood_logs (user_id, score, description, emotion_tag, triggers) VALUES (?, ?, ?, ?, ?)',
+        (user_id, score, description, emotion_tag, triggers)
     )
     conn.commit()
     log_id = cursor.lastrowid

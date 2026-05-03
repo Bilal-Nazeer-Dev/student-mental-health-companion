@@ -18,62 +18,135 @@ function closeExercise() {
   document.getElementById('exercise-content').innerHTML = '';
 }
 
-// ── 1. Box Breathing (4-4-4-4) ─────────────────────────────────
-function startBreathing(el) {
-  const phases = [
-    { name: 'Inhale', duration: 4, cssClass: 'inhale', desc: 'Breathe in slowly through your nose…' },
-    { name: 'Hold',   duration: 4, cssClass: 'hold',   desc: 'Hold your breath gently…' },
-    { name: 'Exhale', duration: 4, cssClass: 'exhale', desc: 'Breathe out slowly through your mouth…' },
-    { name: 'Hold',   duration: 4, cssClass: 'hold',   desc: 'Hold before the next breath…' },
-  ];
-  const totalCycles = 4;
-  let cycle = 0, phaseIdx = 0, secondsLeft = phases[0].duration;
-  const totalSeconds = totalCycles * phases.reduce((a, p) => a + p.duration, 0);
-  let elapsed = 0;
+let breathAudioCtx = null;
+let breathOsc = null;
+let breathGain = null;
+let isBreathingActive = false;
 
-  el.innerHTML = `
-    <div class="exercise-title">🫧 Box Breathing</div>
-    <div class="breathing-circle" id="breath-circle">${phases[0].name}</div>
-    <div class="exercise-step" id="breath-step">${phases[0].desc}</div>
-    <div class="exercise-timer" id="breath-timer">4</div>
-    <div class="exercise-progress"><div class="exercise-progress-bar" id="breath-bar" style="width:0%"></div></div>
-    <p style="text-align:center;color:var(--text-muted);font-size:13px;">Cycle ${cycle + 1} of ${totalCycles}</p>`;
-
-  const circle = document.getElementById('breath-circle');
-  setTimeout(() => circle.classList.add(phases[0].cssClass), 100);
-
-  exerciseTimer = setInterval(() => {
-    elapsed++;
-    document.getElementById('breath-bar').style.width = (elapsed / totalSeconds * 100) + '%';
-    secondsLeft--;
-    document.getElementById('breath-timer').textContent = secondsLeft;
-
-    if (secondsLeft <= 0) {
-      phaseIdx = (phaseIdx + 1) % phases.length;
-      if (phaseIdx === 0) cycle++;
-
-      if (cycle >= totalCycles) {
-        clearInterval(exerciseTimer);
-        el.innerHTML = `
-          <div style="text-align:center;padding:20px;">
-            <div style="font-size:64px;margin-bottom:16px;">✅</div>
-            <div class="exercise-title">Well done!</div>
-            <p style="color:var(--text-muted);margin-top:8px;">You've completed 4 cycles of box breathing. Take a moment to notice how you feel.</p>
-            <button class="btn-primary" style="margin-top:20px;" onclick="closeExercise()">Finish</button>
-          </div>`;
-        return;
-      }
-
-      const phase = phases[phaseIdx];
-      secondsLeft = phase.duration;
-      circle.className = 'breathing-circle';
-      setTimeout(() => circle.classList.add(phase.cssClass), 50);
-      circle.textContent = phase.name;
-      document.getElementById('breath-step').textContent = phase.desc;
-      document.getElementById('breath-timer').textContent = secondsLeft;
-      el.querySelector('p').textContent = `Cycle ${cycle + 1} of ${totalCycles}`;
+function playBreathTone(type, duration) {
+  try {
+    if (!breathAudioCtx) {
+      breathAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-  }, 1000);
+    if (breathAudioCtx.state === 'suspended') breathAudioCtx.resume();
+    
+    const ctx = breathAudioCtx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.type = 'sine';
+    
+    const now = ctx.currentTime;
+    if (type === 'inhale') {
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.linearRampToValueAtTime(440, now + duration);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.15, now + duration);
+    } else if (type === 'exhale') {
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.linearRampToValueAtTime(220, now + duration);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.linearRampToValueAtTime(0, now + duration);
+    } else {
+      // hold
+      const freq = type === 'hold1' ? 440 : 220;
+      const vol = type === 'hold1' ? 0.15 : 0;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(vol, now);
+    }
+    
+    osc.start(now);
+    osc.stop(now + duration);
+    
+  } catch(e) { console.error('Audio play failed', e); }
+}
+
+function startBreathing(el) {
+  isBreathingActive = true;
+  el.innerHTML = `
+    <div class="exercise-title">🫁 Interactive Breathing</div>
+    
+    <div style="display:flex; justify-content:center; gap: 10px; margin-bottom: 20px; flex-wrap:wrap;">
+      <div style="background:var(--surface-3); padding:8px; border-radius:8px; text-align:center;">
+        <label style="font-size:10px; color:var(--text-dim); display:block;">Inhale (s)</label>
+        <input type="range" id="dur-inhale" min="2" max="8" value="4" oninput="document.getElementById('val-inhale').textContent=this.value" style="width:60px;">
+        <span id="val-inhale" style="font-size:12px;font-weight:bold;">4</span>
+      </div>
+      <div style="background:var(--surface-3); padding:8px; border-radius:8px; text-align:center;">
+        <label style="font-size:10px; color:var(--text-dim); display:block;">Hold (s)</label>
+        <input type="range" id="dur-hold" min="0" max="6" value="4" oninput="document.getElementById('val-hold').textContent=this.value" style="width:60px;">
+        <span id="val-hold" style="font-size:12px;font-weight:bold;">4</span>
+      </div>
+      <div style="background:var(--surface-3); padding:8px; border-radius:8px; text-align:center;">
+        <label style="font-size:10px; color:var(--text-dim); display:block;">Exhale (s)</label>
+        <input type="range" id="dur-exhale" min="2" max="10" value="4" oninput="document.getElementById('val-exhale').textContent=this.value" style="width:60px;">
+        <span id="val-exhale" style="font-size:12px;font-weight:bold;">4</span>
+      </div>
+    </div>
+
+    <div class="breathing-circle" id="breath-circle" style="transition: transform linear;">Ready</div>
+    <div class="exercise-step" id="breath-step">Adjust sliders and click begin.</div>
+    
+    <div style="display:flex;justify-content:center;margin-top:20px;gap:10px;">
+      <button class="btn-primary" id="btn-breath-start" onclick="runBreathingCycle(this)">Begin</button>
+      <button class="btn-primary" style="background:var(--surface-3);color:var(--text);" onclick="stopBreathing()">Stop</button>
+    </div>
+  `;
+
+  window.runBreathingCycle = async (btn) => {
+    btn.disabled = true;
+    btn.textContent = "Breathing...";
+    if (!breathAudioCtx) breathAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    const inhaleD = parseInt(document.getElementById('dur-inhale').value);
+    const holdD = parseInt(document.getElementById('dur-hold').value);
+    const exhaleD = parseInt(document.getElementById('dur-exhale').value);
+    
+    const circle = document.getElementById('breath-circle');
+    const step = document.getElementById('breath-step');
+    
+    const runPhase = (name, dur, type, scale) => {
+      return new Promise(resolve => {
+        if (!isBreathingActive) return resolve();
+        circle.textContent = name;
+        step.textContent = `Breathe phase...`;
+        circle.style.transitionDuration = `${dur}s`;
+        circle.style.transform = `scale(${scale})`;
+        
+        playBreathTone(type, dur);
+        
+        let timeLeft = dur;
+        step.textContent = timeLeft;
+        clearInterval(exerciseTimer);
+        exerciseTimer = setInterval(() => {
+          timeLeft--;
+          if (timeLeft > 0) step.textContent = timeLeft;
+        }, 1000);
+        
+        setTimeout(() => {
+          clearInterval(exerciseTimer);
+          resolve();
+        }, dur * 1000);
+      });
+    };
+
+    while (isBreathingActive) {
+      await runPhase('Inhale', inhaleD, 'inhale', 1.5);
+      if (holdD > 0 && isBreathingActive) await runPhase('Hold', holdD, 'hold1', 1.5);
+      if (isBreathingActive) await runPhase('Exhale', exhaleD, 'exhale', 1.0);
+      if (holdD > 0 && isBreathingActive) await runPhase('Hold', holdD, 'hold2', 1.0);
+    }
+  };
+  
+  window.stopBreathing = () => {
+    isBreathingActive = false;
+    clearInterval(exerciseTimer);
+    if (typeof addWellbeingPoints !== 'undefined') addWellbeingPoints(5, 'Completed Breathing Exercise');
+    closeExercise();
+  };
 }
 
 // ── 2. 5-4-3-2-1 Grounding ─────────────────────────────────────

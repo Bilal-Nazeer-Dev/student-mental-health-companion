@@ -21,7 +21,39 @@
   --radius-sm: 10px;
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
   --shadow-lg: 0 16px 48px rgba(0,0,0,0.5);
+  --emotion-color: 124, 58, 237; /* Dynamic RGB values for background */
 }
+
+/* ── Themes ─────────────────────────────────────────────────── */
+body.theme-sad {
+  --primary: #3B82F6;
+  --primary-light: #60A5FA;
+  --secondary: #10B981;
+  --emotion-color: 59, 130, 246;
+}
+body.theme-anxious {
+  --primary: #10B981;
+  --primary-light: #34D399;
+  --secondary: #6366F1;
+  --emotion-color: 16, 185, 129;
+}
+body.theme-happy {
+  --primary: #F59E0B;
+  --primary-light: #FBBF24;
+  --secondary: #EF4444;
+  --emotion-color: 245, 158, 11;
+}
+body.theme-frustrated {
+  --primary: #EF4444;
+  --primary-light: #F87171;
+  --secondary: #F59E0B;
+  --emotion-color: 239, 68, 68;
+}
+
+body {
+  transition: background 0.5s ease, color 0.5s ease;
+}
+*, *::before, *::after { transition: border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease; }
 
 /* ── Reset & Base ───────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -55,7 +87,8 @@ body {
   margin-left: var(--sidebar-w);
   min-height: 100vh;
   padding: 32px;
-  background: radial-gradient(ellipse 80% 50% at 70% -10%, rgba(124,58,237,0.08) 0%, transparent 60%);
+  background: radial-gradient(ellipse 80% 50% at 70% -10%, rgba(var(--emotion-color), 0.12) 0%, transparent 60%);
+  transition: background 1.5s ease-in-out;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────── */

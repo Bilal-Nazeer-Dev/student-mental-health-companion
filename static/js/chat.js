@@ -16,6 +16,9 @@ async function loadChatHistory() {
         appendMessage(msg.content, msg.role === 'user' ? 'user' : 'assistant', null, false);
       });
       scrollToBottom();
+      // Hide the load history button once loaded
+      const historyBtn = document.getElementById('btn-load-history');
+      if (historyBtn) historyBtn.style.display = 'none';
     }
   } catch { /* silent */ }
 }
@@ -27,6 +30,11 @@ async function sendMessage() {
   const message = input.value.trim();
   if (!message) return;
 
+  if (typeof checkCrisis !== 'undefined' && checkCrisis(message)) {
+    input.value = '';
+    return;
+  }
+
   input.value = '';
   input.style.height = 'auto';
   isSending = true;
@@ -36,17 +44,30 @@ async function sendMessage() {
   showTyping(true);
   scrollToBottom();
 
+  // Gather Real-Time App Context
+  const ambientSelect = document.getElementById('ambient-track');
+  const ambientAudio = document.getElementById('ambient-audio');
+  const ambientText = ambientSelect && ambientSelect.options[ambientSelect.selectedIndex].text;
+  const isPlayingAmbient = ambientAudio && !ambientAudio.paused && ambientSelect.value ? ambientText : 'None';
+  
+  const focusContext = typeof isFocusing !== 'undefined' && isFocusing ? `Running (${document.getElementById('focus-mode-label').textContent}, ${Math.floor(focusTimeLeft/60)} mins left)` : 'Not active';
+  
+  const wellbeingContext = typeof wellbeingLevel !== 'undefined' ? `Level ${wellbeingLevel} (${wellbeingCurrent}/100)` : 'Level 1';
+  
+  const appContext = `Ambient Audio: ${isPlayingAmbient} | Focus Timer: ${focusContext} | Wellbeing Gamification: ${wellbeingContext}`;
+
   try {
     const res = await fetch('/api/chat/message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message })
+      body: JSON.stringify({ message, appContext })
     });
-    const data = await res.json();
-    showTyping(false);
-
+    
+    const data = await res.json(); // <-- Restored this line to fix the Connection Error
+    
     if (res.ok) {
       appendMessage(data.response, 'assistant', data.emotion);
+      updateTheme(data.emotion);
       if (data.emergency) triggerEmergency();
     } else {
       appendMessage('Sorry, I had trouble responding. Please try again. 💙', 'assistant');
@@ -145,5 +166,118 @@ async function clearChat() {
   showToast('Conversation cleared', 'info');
 }
 
-// Load history when module initialises
-window.addEventListener('load', loadChatHistory);
+// ── Dynamic Theme Update ────────────────────────────────────────
+function updateTheme(emotion) {
+  if (!emotion || emotion === 'neutral') return;
+  const root = document.documentElement;
+  let rgb = '124, 58, 237'; // Default Purple
+  
+  switch(emotion) {
+    case 'happy': rgb = '245, 158, 11'; break; // Amber
+    case 'sad': rgb = '59, 130, 246'; break; // Blue
+    case 'anxious': rgb = '16, 185, 129'; break; // Calming Green
+    case 'stressed': rgb = '239, 68, 68'; break; // Red
+    case 'frustrated': rgb = '249, 115, 22'; break; // Orange
+    case 'tired': rgb = '99, 102, 241'; break; // Indigo
+  }
+  
+  root.style.setProperty('--emotion-color', rgb);
+}
+
+// ── Real-Time Empathy Engine ─────────────────────────────────────
+function analyzeSentiment(text) {
+  const indicator = document.getElementById('empathy-indicator');
+  const icon = document.getElementById('empathy-icon');
+  const label = document.getElementById('empathy-text');
+  
+  if (!text || text.length < 3) {
+    indicator.style.opacity = '0';
+    return;
+  }
+  
+  indicator.style.opacity = '1';
+  const lower = text.toLowerCase();
+  
+  if (lower.match(/\b(sad|depressed|cry|tears|down|hopeless|lonely|hurt)\b/)) {
+    icon.textContent = '💙'; label.textContent = 'Feelora senses sadness...';
+  } else if (lower.match(/\b(anxious|stress|stressed|worry|nervous|panic|overwhelmed|afraid)\b/)) {
+    icon.textContent = '🌬️'; label.textContent = 'Feelora senses anxiety. Remember to breathe...';
+  } else if (lower.match(/\b(angry|mad|frustrated|hate|annoyed|furious|upset)\b/)) {
+    icon.textContent = '🧘'; label.textContent = 'Feelora senses frustration...';
+  } else if (lower.match(/\b(happy|great|good|awesome|amazing|excited|joy|glad)\b/)) {
+    icon.textContent = '✨'; label.textContent = 'Feelora senses positivity!';
+  } else if (lower.match(/\b(tired|exhausted|sleepy|fatigue|drained)\b/)) {
+    icon.textContent = '💤'; label.textContent = 'Feelora senses exhaustion...';
+  } else {
+    icon.textContent = '🔍'; label.textContent = 'Listening closely...';
+  }
+}
+
+// ── Voice Dictation ──────────────────────────────────────────────
+let recognition = null;
+let isDictating = false;
+
+function toggleDictation(e) {
+  e.preventDefault();
+  
+  if (!('webkitSpeechRecognition' in window)) {
+    showToast('Voice dictation is not supported in this browser.', 'error');
+    return;
+  }
+  
+  const btn = document.getElementById('btn-mic');
+  
+  if (isDictating) {
+    if (recognition) recognition.stop();
+    return;
+  }
+  
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  
+  recognition.onstart = function() {
+    isDictating = true;
+    btn.style.color = 'var(--danger)';
+    btn.style.transform = 'scale(1.2)';
+    showToast('Listening... Speak now.', 'success');
+  };
+  
+  recognition.onresult = function(event) {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+    const input = document.getElementById('chat-input');
+    if (finalTranscript) {
+      input.value += (input.value ? ' ' : '') + finalTranscript;
+      analyzeSentiment(input.value);
+      autoResize(input);
+    }
+  };
+  
+  recognition.onerror = function(event) {
+    console.error('Speech recognition error', event.error);
+    stopDictationUI();
+  };
+  
+  recognition.onend = function() {
+    stopDictationUI();
+  };
+  
+  recognition.start();
+}
+
+function stopDictationUI() {
+  isDictating = false;
+  const btn = document.getElementById('btn-mic');
+  btn.style.color = '';
+  btn.style.transform = '';
+}
+
+// Load setup voice when module initialises
+window.addEventListener('load', () => {
+  // We no longer auto-load chat history. User must click "Load History" button.
+});

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sage — Dashboard</title>
+  <title>Feelora — Dashboard</title>
   <meta name="description" content="Your AI mental health companion dashboard" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -18,11 +18,11 @@
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">🌿</div>
-      <div class="sidebar-logo-text">Sage</div>
+      <div class="sidebar-logo-text">Feelora</div>
     </div>
     <div class="nav-links">
       <button class="nav-link active" id="nav-chat" onclick="navigate('chat')">
-        <span class="nav-icon">💬</span><span class="nav-label">Chat with Sage</span>
+        <span class="nav-icon">💬</span><span class="nav-label">Chat with Feelora</span>
       </button>
       <button class="nav-link" id="nav-mood" onclick="navigate('mood')">
         <span class="nav-icon">😊</span><span class="nav-label">Mood Tracker</span>
@@ -32,6 +32,9 @@
       </button>
       <button class="nav-link" id="nav-relax" onclick="navigate('relax')">
         <span class="nav-icon">🧘</span><span class="nav-label">Relaxation</span>
+      </button>
+      <button class="nav-link" id="nav-focus" onclick="navigate('focus')">
+        <span class="nav-icon">⏱️</span><span class="nav-label">Focus Room</span>
       </button>
       <button class="nav-link" id="nav-dashboard" onclick="navigate('dashboard')">
         <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
@@ -52,27 +55,62 @@
   <!-- Mobile top bar -->
   <header class="mobile-header">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <div class="mobile-logo">🌿 Sage</div>
+    <div class="mobile-logo">🌿 Feelora</div>
   </header>
 
   <!-- Main content area -->
   <main class="main-content" id="main-content">
 
+    <!-- ── Live Wellbeing Score ──────────────────────────────── -->
+    <div class="wellbeing-bar-container" style="display:flex; align-items:center; gap: 12px; background: var(--surface-2); padding: 12px 20px; border-bottom: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; position: relative;">
+      <div class="wellbeing-icon" style="font-size: 20px;">🏆</div>
+      <div style="flex: 1;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 4px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text);">Wellbeing Score</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--primary-light);"><span id="wellbeing-score">0</span> / <span id="wellbeing-max">100</span></span>
+        </div>
+        <div style="height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; position: relative;">
+          <div id="wellbeing-fill" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 4px; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+        </div>
+      </div>
+      <div id="wellbeing-level-badge" style="background: var(--primary-light); color: var(--bg); font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 12px; text-transform: uppercase;">Lvl 1</div>
+    </div>
+
+    <!-- ── Premium Ambient Soundscapes ───────────────────────── -->
+    <div class="ambient-player" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; background:var(--surface-2); padding:12px 20px; border-bottom:1px solid var(--border); margin-bottom: 20px;">
+      <div style="font-size:14px; font-weight:700; color:var(--text);"><span style="color:var(--primary-light)">✨</span> Premium Soundscapes</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <select id="ambient-track" onchange="changeAmbientTrack()" style="background:var(--surface-3); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:6px 10px; font-size:13px; outline:none; cursor:pointer; transition:all 0.2s;">
+          <option value="">🔇 Silence</option>
+          <option value="https://stream.zeno.fm/f3wvbbqmdg8uv">🎧 Lo-Fi Beats</option>
+          <option value="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg">🌧️ Rain Storm</option>
+          <option value="https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg">🌊 Ocean Waves</option>
+          <option value="https://actions.google.com/sounds/v1/nature/fire_crackling.ogg">🔥 Crackling Fire</option>
+        </select>
+        <button id="btn-ambient-play" onclick="toggleAmbientPlay()" style="background:transparent; border:none; color:var(--primary-light); cursor:pointer; font-size:18px; transition:transform 0.2s;">▶️</button>
+        <input type="range" id="ambient-volume" min="0" max="1" step="0.1" value="0.3" oninput="changeAmbientVolume()" style="width: 80px; accent-color: var(--primary); cursor:pointer;">
+        <audio id="ambient-audio" loop></audio>
+      </div>
+    </div>
+
     <!-- ── Chat Panel ────────────────────────────────────────── -->
     <section id="panel-chat" class="panel active">
       <div class="panel-header">
         <div>
-          <h1 class="panel-title">Chat with Sage</h1>
+          <h1 class="panel-title">Chat with Feelora</h1>
           <p class="panel-sub">Your AI mental health companion — always here, never judging.</p>
         </div>
-        <button class="btn-icon" onclick="clearChat()" title="Clear conversation">🗑</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-icon" id="btn-load-history" onclick="loadChatHistory()" title="Load previous chat">🕒</button>
+          <button class="btn-icon" onclick="clearChat()" title="Clear conversation">🗑</button>
+        </div>
       </div>
       <div class="chat-container">
         <div class="chat-messages" id="chat-messages">
           <div class="chat-welcome">
             <div class="welcome-avatar">🌿</div>
             <div class="welcome-text">
-              <strong>Hey, I'm Sage!</strong> 👋<br/>
+              <strong>Hey, I'm Feelora!</strong> 👋<br/>
               I'm here to listen, support you through stress, and help you feel better.
               How are you feeling today?
             </div>
@@ -81,11 +119,18 @@
         <div class="typing-indicator" id="typing-indicator">
           <span></span><span></span><span></span>
         </div>
-        <div class="chat-input-row">
-          <textarea id="chat-input" class="chat-input" placeholder="Share what's on your mind…" rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
-          <button class="btn-send" id="btn-send" onclick="sendMessage()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
+        <div class="chat-input-wrapper">
+          <textarea id="chat-input" class="form-textarea" placeholder="Share what's on your mind..." rows="1" oninput="autoResize(this); analyzeSentiment(this.value);" onkeydown="handleChatKey(event)"></textarea>
+          <div class="chat-input-actions">
+            <button id="btn-mic" class="btn-icon" title="Speak to Feelora" onclick="toggleDictation(event)" style="transition: all 0.3s ease;">🎤</button>
+            <button id="btn-send" class="btn-icon btn-primary-icon" onclick="sendMessage()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+          <!-- Empathy Engine Indicator -->
+          <div id="empathy-indicator" style="position: absolute; bottom: -24px; left: 16px; font-size: 11px; font-weight: 600; color: var(--text-dim); transition: all 0.3s opacity; opacity: 0;">
+            <span id="empathy-icon">🔍</span> <span id="empathy-text">Listening...</span>
+          </div>
         </div>
       </div>
     </section>
@@ -108,8 +153,29 @@
             <button class="emoji-btn" data-score="4" onclick="selectMood(4)" title="Good">😊<span>Good</span></button>
             <button class="emoji-btn" data-score="5" onclick="selectMood(5)" title="Excellent">😄<span>Excellent</span></button>
           </div>
-          <textarea id="mood-description" class="form-textarea" placeholder="Optionally describe how you're feeling… (what happened today?)" rows="3"></textarea>
-          <button class="btn-primary" onclick="logMood()">Log My Mood</button>
+          
+          <div id="mood-step-2" style="display: none; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <div id="mood-dynamic-question" style="font-size: 15px; font-weight: 600; color: var(--primary-light); margin-bottom: 16px;">
+              <!-- Dynamic question from Feelora goes here -->
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Context Tags (Select what applies)</label>
+              <div class="mood-tags-container" id="mood-tags-container">
+                <button class="mood-tag" onclick="toggleTag(this, 'Sleep')">💤 Sleep</button>
+                <button class="mood-tag" onclick="toggleTag(this, 'Exams')">📚 Exams</button>
+                <button class="mood-tag" onclick="toggleTag(this, 'Friends')">👥 Friends</button>
+                <button class="mood-tag" onclick="toggleTag(this, 'Health')">🏃 Health</button>
+                <button class="mood-tag" onclick="toggleTag(this, 'Diet')">🍔 Diet</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <textarea id="mood-desc" class="form-textarea" placeholder="Type your answer to Feelora here... (Optional)" rows="2"></textarea>
+            </div>
+            <button class="btn-primary" id="btn-save-mood" onclick="saveMood()" style="width: 100%;">Complete Check-in</button>
+            <button class="btn-primary" id="btn-reflect-mood" onclick="getReflection()" style="width: 100%; margin-top: 10px; background: var(--surface-3); color: var(--text); border: 1px solid var(--border); display: none;">✨ Read Feelora's Feedback</button>
+          </div>
           <div id="mood-log-msg" class="success-msg"></div>
         </div>
         <div class="card mood-stats-card">
@@ -160,6 +226,22 @@
               <option value="Pomodoro (25 min study, 5 min break)">Pomodoro (25/5)</option>
               <option value="Long sessions (90 min study, 20 min break)">Long Sessions (90/20)</option>
               <option value="Flexible short breaks every hour">Flexible Breaks</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Current Energy Level ⚡</label>
+            <select id="planner-energy" class="form-input">
+              <option value="High (Ready to tackle anything)">High (Ready to tackle anything)</option>
+              <option value="Medium (Normal focus)">Medium (Normal focus)</option>
+              <option value="Low (Feeling burnt out, need gentle tasks)">Low (Feeling burnt out, need gentle tasks)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preferred Learning Style 🧠</label>
+            <select id="planner-style" class="form-input">
+              <option value="Visual (Videos, Mindmaps)">Visual (Videos, Mindmaps)</option>
+              <option value="Reading/Writing (Notes, Summaries)">Reading/Writing (Notes, Summaries)</option>
+              <option value="Practice (Past papers, Quizzes)">Practice (Past papers, Quizzes)</option>
             </select>
           </div>
           <button class="btn-primary" id="planner-btn" onclick="generatePlan()">✨ Generate My Plan</button>
@@ -213,6 +295,35 @@
         <div class="exercise-modal-inner">
           <button class="exercise-close" onclick="closeExercise()">✕</button>
           <div id="exercise-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FOCUS ROOM PANEL ── -->
+    <section id="panel-focus" class="panel">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Focus Room</h1>
+          <p class="panel-sub">Eliminate distractions. Stay in the zone.</p>
+        </div>
+      </div>
+      <div class="focus-container">
+        <div class="focus-timer-ring">
+          <svg width="300" height="300" viewBox="0 0 300 300">
+            <circle class="focus-ring-bg" cx="150" cy="150" r="140"></circle>
+            <circle class="focus-ring-progress" id="focus-progress" cx="150" cy="150" r="140"></circle>
+          </svg>
+          <div class="focus-time-display">
+            <div id="focus-time">25:00</div>
+            <div id="focus-mode-label">Focus Session</div>
+          </div>
+        </div>
+        <div class="focus-controls">
+          <button class="btn-primary" id="btn-focus-toggle" onclick="toggleFocus()">Start Focus</button>
+          <button class="btn-icon" style="border: 1px solid var(--border);" onclick="resetFocus()">Reset</button>
+        </div>
+        <div class="focus-stats">
+          <div>Sessions today: <strong id="focus-sessions-count">0</strong></div>
         </div>
       </div>
     </section>
@@ -272,8 +383,18 @@
       <p style="font-size:14px;opacity:0.8;">Please reach out to a trusted friend, family member, or counselor. You deserve support. 💙</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
         <button class="btn-emergency-close" onclick="closeEmergency()">I'm okay, continue</button>
-        <button class="btn-emergency-chat" onclick="closeEmergency();navigate('chat')">Continue talking with Sage</button>
+        <button class="btn-emergency-chat" onclick="closeEmergency();navigate('chat')">Continue talking with Feelora</button>
       </div>
+    </div>
+  </div>
+
+  <!-- AI Reflection Modal -->
+  <div class="exercise-modal hidden" id="reflection-modal">
+    <div class="exercise-modal-inner" style="text-align: center;">
+      <button class="exercise-close" onclick="closeReflection()">×</button>
+      <div style="font-size:40px; margin-bottom:16px;">✨</div>
+      <h3 class="exercise-title">Feelora's Reflection</h3>
+      <p class="meditation-text" id="reflection-text">Thinking...</p>
     </div>
   </div>
 
@@ -285,5 +406,6 @@
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
   <script src="{{ url_for('static', filename='js/relaxation.js') }}"></script>
   <script src="{{ url_for('static', filename='js/emergency.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/focus.js') }}"></script>
 </body>
 </html>

@@ -14,11 +14,18 @@ def generate():
     deadlines = data.get('deadlines', 'No specific deadlines').strip()
     available_hours = data.get('available_hours', '4')
     break_style = data.get('break_style', 'Pomodoro (25 min study, 5 min break)')
+    energy_level = data.get('energy_level', 'Medium')
+    learning_style = data.get('learning_style', 'Visual')
 
     if not subjects:
         return jsonify({'error': 'Please enter at least one subject'}), 400
 
-    plan = generate_study_plan(subjects, deadlines, str(available_hours), break_style)
+    from models import get_latest_mood
+    user_id = session['user_id']
+    latest_m = get_latest_mood(user_id)
+    mood_tag = latest_m['emotion_tag'] if latest_m else "Neutral"
+
+    plan = generate_study_plan(subjects, deadlines, str(available_hours), break_style, energy_level, learning_style, mood_tag)
     user_id = session['user_id']
     save_schedule(user_id, plan, subjects)
 

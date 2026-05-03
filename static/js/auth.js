@@ -4,5 +4,5 @@
 // This file is only loaded in app.html for convenience exports.
 
 function getStoredUser() {
-  try { return JSON.parse(localStorage.getItem('sage_user')); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem('feelora_user')); } catch { return null; }
 }

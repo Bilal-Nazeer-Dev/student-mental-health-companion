@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sage — AI Student Mental Health Companion</title>
-  <meta name="description" content="Sage is your AI-powered mental health companion. Get instant emotional support, track your mood, and build healthy study habits." />
+  <title>Feelora — AI Student Mental Health Companion</title>
+  <meta name="description" content="Feelora is your AI-powered mental health companion. Get instant emotional support, track your mood, and build healthy study habits." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
@@ -106,7 +106,7 @@
     <div class="logo">
       <div class="logo-icon">🌿</div>
       <div>
-        <div class="logo-text">Sage</div>
+        <div class="logo-text">Feelora</div>
         <div class="logo-sub">AI Mental Health Companion</div>
       </div>
     </div>
@@ -197,7 +197,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          localStorage.setItem('sage_user', JSON.stringify(data.user));
+          localStorage.setItem('feelora_user', JSON.stringify(data.user));
           window.location.href = '/app';
         } else {
           showError(data.error || 'Login failed. Please try again.');
@@ -228,7 +228,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          localStorage.setItem('sage_user', JSON.stringify(data.user));
+          localStorage.setItem('feelora_user', JSON.stringify(data.user));
           window.location.href = '/app';
         } else {
           showError(data.error || 'Registration failed. Please try again.');

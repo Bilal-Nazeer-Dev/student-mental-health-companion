@@ -11,6 +11,8 @@ chat_bp = Blueprint('chat', __name__)
 def send_message():
     data = request.get_json() or {}
     message = data.get('message', '').strip()
+    app_context = data.get('appContext', '')
+    
     if not message:
         return jsonify({'error': 'Message cannot be empty'}), 400
     if len(message) > 2000:
@@ -19,7 +21,7 @@ def send_message():
     user_id = session['user_id']
     session_id, history = get_or_create_session(user_id)
 
-    result = chat_with_gemini(message, history)
+    result = chat_with_gemini(message, history, app_context)
 
     # Append new exchange to history
     history.append({'role': 'user', 'content': message})

@@ -35,9 +35,30 @@ async function loadDashboard() {
 
     // Emotion distribution chart
     renderEmotionChart(d.emotion_distribution);
+    
+    // Load AI Weekly Report
+    loadWeeklyReport();
 
   } catch (e) {
     showToast('Could not load dashboard data', 'error');
+  }
+}
+
+async function loadWeeklyReport() {
+  const insightEl = document.getElementById('weekly-insight');
+  if (!insightEl) return;
+  
+  try {
+    const res = await fetch('/api/mood/report');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    // Convert markdown-ish text to simple HTML
+    let text = data.report.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\n/g, '<br>');
+    insightEl.innerHTML = text;
+  } catch (e) {
+    insightEl.textContent = 'Keep logging your mood to unlock your AI Weekly Insight! 💙';
   }
 }
 
