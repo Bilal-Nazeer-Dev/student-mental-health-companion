@@ -3,7 +3,6 @@ from config import Config
 from models import init_db
 from services.gemini_service import init_gemini
 
-
 def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(Config)
@@ -24,21 +23,18 @@ def create_app():
     app.register_blueprint(schedule_bp, url_prefix='/api/schedule')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 
+    @app.route('/')
+    def index():
+        return render_template('index.html')
+
+    @app.route('/app')
+    def app_page():
+        return render_template('app.html')
+
     return app
 
-app = create_app()
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/app')
-def app_page():
-    return render_template('app.html')
-
-
+# Expose app for Gunicorn
 app = create_app()
 
 if __name__ == '__main__':
-    app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=Config.DEBUG)
