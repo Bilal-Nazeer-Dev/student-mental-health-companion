@@ -62,20 +62,24 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, appContext })
     });
-    
-    const data = await res.json(); // <-- Restored this line to fix the Connection Error
-    
-    if (res.ok) {
+
+    let data = {};
+    try { data = await res.json(); } catch { /* non-JSON body */ }
+
+    if (res.ok && data.response) {
       appendMessage(data.response, 'assistant', data.emotion);
       updateTheme(data.emotion);
       if (data.emergency) triggerEmergency();
     } else {
-      appendMessage('Sorry, I had trouble responding. Please try again. 💙', 'assistant');
+      const errMsg = (data && data.error) ? data.error
+                    : `Sorry, I had trouble responding (HTTP ${res.status}). Please try again. 💙`;
+      appendMessage(errMsg, 'assistant');
     }
-  } catch {
-    showTyping(false);
+  } catch (err) {
+    console.error('Chat request failed:', err);
     appendMessage('Connection error. Please check your connection and try again.', 'assistant');
   } finally {
+    showTyping(false);
     isSending = false;
     document.getElementById('btn-send').disabled = false;
     scrollToBottom();
